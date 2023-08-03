@@ -2,12 +2,24 @@ package bd.kdtree.classes
 
 import bd.kdtree.empty
 import bd.kdtree.traits.{Comparison, KD_Tree}
-import bdkdtree.implicits.*
+import bd.kdtree.traits.given
 
 import scala.annotation.{tailrec, targetName}
 
 /**
  * Created by Bomen Derick.
+ */
+
+/**
+ * A KD-Tree having data as point with left and right branches
+ * @param tData
+ * point representation of the KD-Tree
+ * @param tLeft
+ * left branch of the KD-Tree
+ * @param tRight
+ * right branch of the KD-Tree
+ * @tparam T
+ * type of points hold by the KD-Tree
  */
 case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) extends KD_Tree[T]:
   
@@ -15,24 +27,24 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * point representation of a given KD-Tree
    */
-  override val data: Point[T] = ???
+  override val data: Point[T] = tData
 
   /**
    * @return
    * left branch of a given KD-Tree
    */
-  override val left: KD_Tree[T] = ???
+  override val left: KD_Tree[T] = tLeft
 
   /**
    * @return
    * right branch of a given KD-Tree
    */
-  override val right: KD_Tree[T] = ???
+  override val right: KD_Tree[T] = tRight
 
   /**
    * Dimension of points in a given KD-Tree
    */
-  override val dimension: Int = ???
+  override val dimension: Int = tData.value.size
 
   /**
    * Determine whether a given KD-Tree is empty or not
@@ -40,7 +52,8 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns true if a KD-Tree contains no points, false otherwise
    */
-  override def isEmpty: Boolean = ???
+  override def isEmpty: Boolean =
+    if tData.value.isEmpty then true else false
 
   /**
    * Determine the depth of a given KD-Tree (How deep a KD-Tree is)
@@ -48,20 +61,13 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns the integer representation of the depth of a KD-Tree (in other words the number of levels a KD-Tree has)
    */
-  override def depth: Int = ???
-
-  /**
-   * Determine if a KD-Tree contains a given point
-   *
-   * @param point
-   * one or more numeric numbers in a sequence of type TT
-   * @tparam TT
-   * concrete type of point
-   * @return
-   * returns true if point is found false otherwise
-   */
-  override def contains[TT >: T : Comparison](point: TT*): Boolean = ???
-
+  override def depth: Int =
+    if left.isEmpty && right.isEmpty then 0
+    else
+     lazy val leftDepth = 1 + left.depth
+     lazy val rightDepth = 1 + right.depth
+      if leftDepth > rightDepth then leftDepth else rightDepth
+  
   /**
    * Determine if a KD-Tree contains a given point
    *
@@ -74,7 +80,26 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns true if point is found false otherwise
    */
-  override def contains[TT >: T : Comparison](point: Point[TT], depth: Int): Boolean = ???
+  override def contains[TT >: T](point: Point[TT], depth: Int = 0)(using comparison: Comparison[TT]): Boolean =
+    lazy val axis: Int = depth % dimension
+    if data == point then true
+    else if comparison.isLessThan(point.value(axis), data.value(axis)) then left.contains(point, depth + 1)
+    else right.contains(point, depth + 1)
+
+  /**
+   * Determine if a KD-Tree contains a given point
+   *
+   * @param point
+   * one or more numeric numbers in a sequence of type TT
+   * @tparam TT
+   * concrete type of point
+   * @return
+   * returns true if point is found false otherwise
+   */
+  override def contains[TT >: T : Comparison](point: TT*): Boolean =
+    lazy val pointToSearch: Point[TT] = Point(point.toSeq)
+    assume(pointToSearch.value.size == dimension, s"Required dimension is $dimension")
+    contains(pointToSearch)
 
   /**
    * Determine if a KD-Tree contains another KD_Tree
@@ -86,7 +111,9 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns true if node is found, false otherwise
    */
-  override def contains[TT >: T : Comparison](node: KD_Tree[TT]): Boolean = ???
+  override def contains[TT >: T : Comparison](kd_tree: KD_Tree[TT]): Boolean = kd_tree match
+    case Leaf(lData) => contains(lData)
+    case KDTree(tData, tLeft, tRight) => contains(tData) && contains(tLeft) && contains(tRight) 
 
   /**
    * A protected utility method to insert a given point to a KD-Tree
@@ -95,14 +122,15 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * given point to be inserted 
    * @param depth
    * depth at which to insert the point
-   * @param dimension
-   * the dimension of the given point
    * @tparam TT
    * the type of the given point
    * @return
    * returns a new KD-Tree with the given point inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insertAPoint[TT >: T : Comparison](point: Point[TT], depth: Int, dimension: Int): KD_Tree[TT] = ???
+  override def insertAPoint[TT >: T](point: Point[TT], depth: Int)(using comparison: Comparison[TT]): KD_Tree[TT] =
+    lazy val axis: Int = depth % dimension
+    if comparison.isLessThan(point.value(axis), data.value(axis)) then KDTree(data, left.insertAPoint(point, depth + 1), right)
+    else KDTree(data, left, right.insertAPoint(point, depth + 1))
 
   /**
    * Insert a data to a KD-Tree as a point
@@ -116,7 +144,9 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @see
    * [[Point]]
    */
-  override def insert[TT >: T : Comparison](data: Point[TT]): KD_Tree[TT] = ???
+  override def insert[TT >: T : Comparison](data: Point[TT]): KD_Tree[TT] =
+    assume(data.value.size == dimension, s"Required dimension is $dimension-D")
+    insertAPoint(data, 0)
 
   /**
    * Insert a sequence of numbers to a KD-Tree as a point
@@ -130,7 +160,10 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @see
    * [[Point]]
    */
-  override def insert[TT >: T : Comparison](point: TT*): KD_Tree[TT] = ???
+  override def insert[TT >: T : Comparison](point: TT*): KD_Tree[TT] =
+    lazy val pointToAdd: Point[TT] = Point(point.toSeq)
+    assume(pointToAdd.value.size == dimension, s"Required dimension is $dimension-D")
+    insertAPoint(pointToAdd, 0)
 
   /**
    * Insert a KD-Tree at a particular depth in the tree
@@ -144,7 +177,11 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insert[TT >: T : Comparison](node: KD_Tree[TT], depth: Int): KD_Tree[TT] = ???
+  override def insert[TT >: T](kdtree: KDTree[TT], depth: Int)(using comparison: Comparison[TT]): KD_Tree[TT] =
+    assume(kdtree.dimension == dimension, s"Required dimension is $dimension-D")
+    lazy val axis: Int = depth % dimension
+    if comparison.isLessThan(kdtree.data.value(axis), data.value(axis)) then KDTree(data, left.insert(kdtree, depth + 1), right)
+    else KDTree(data, left, right.insert(kdtree, depth + 1))
 
   /**
    * Insert a KD-Tree 
@@ -156,7 +193,10 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insert[TT >: T : Comparison](tree: KD_Tree[TT]): KD_Tree[TT] = ???
+  override def insert[TT >: T : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT] = kd_tree match
+    case Leaf(lData) => insert(lData)
+    case kdtree: KDTree[TT] => insert(kdtree, 0)
+    case _ => this
 
   /**
    * Remove a given point from a KD-Tree

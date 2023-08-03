@@ -1,6 +1,6 @@
 package bd.kdtree
 
-import bd.kdtree.classes.{Leaf, Point}
+import bd.kdtree.classes.{Leaf, Point, KDTree}
 import bd.kdtree.traits.{Comparison, KD_Tree}
 
 /**
@@ -86,20 +86,18 @@ case object empty extends KD_Tree[Nothing]:
   override def contains[TT >: Nothing : Comparison](node: KD_Tree[TT]): Boolean = false
 
   /**
-   * A protected utility method to insert a given point to a KD-Tree
+   * A utility method to insert a given point to a KD-Tree
    *
    * @param point
    * given point to be inserted
    * @param depth
    * depth at which to insert the point
-   * @param dimension
-   * the dimension of the given point
    * @tparam TT
    * the type of the given point
    * @return
    * returns a new KD-Tree with the given point inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insertAPoint[TT >: Nothing : Comparison](point: Point[TT], depth: Int, dimension: Int): KD_Tree[TT] = Leaf(point)
+  override def insertAPoint[TT >: Nothing : Comparison](point: Point[TT], depth: Int): KD_Tree[TT] = Leaf(point)
 
   /**
    * Insert a data to a KD-Tree as a point
@@ -141,7 +139,7 @@ case object empty extends KD_Tree[Nothing]:
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insert[TT >: Nothing : Comparison](node: KD_Tree[TT], depth: Int): KD_Tree[TT] = node
+  override def insert[TT >: Nothing : Comparison](kdtree: KDTree[TT], depth: Int): KD_Tree[TT] = kdtree
 
   /**
    * Insert a KD-Tree
@@ -153,7 +151,7 @@ case object empty extends KD_Tree[Nothing]:
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  override def insert[TT >: Nothing : Comparison](tree: KD_Tree[TT]): KD_Tree[TT] = tree
+  override def insert[TT >: Nothing : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT] = kd_tree
 
   /**
    * Remove a given point from a KD-Tree

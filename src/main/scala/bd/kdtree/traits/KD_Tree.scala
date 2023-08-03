@@ -1,6 +1,6 @@
 package bd.kdtree.traits
 
-import bd.kdtree.classes.Point
+import bd.kdtree.classes.{Point, KDTree}
 
 /**
  * Created by Bomen Derick.
@@ -85,20 +85,18 @@ trait KD_Tree[+T]:
   def contains[TT >: T : Comparison](node: KD_Tree[TT]): Boolean
   
   /**
-   * A protected utility method to insert a given point to a KD-Tree
+   * A utility method to insert a given point to a KD-Tree
    *
    * @param point
    * given point to be inserted 
    * @param depth
    * depth at which to insert the point
-   * @param dimension
-   * the dimension of the given point
    * @tparam TT
    * the type of the given point
    * @return
    * returns a new KD-Tree with the given point inserted if insertion criteria are met(eg: same dimension)
    */
-  def insertAPoint[TT >: T : Comparison](point: Point[TT], depth: Int, dimension: Int): KD_Tree[TT]
+  def insertAPoint[TT >: T : Comparison](point: Point[TT], depth: Int): KD_Tree[TT]
 
   /**
    * Insert a data to a KD-Tree as a point
@@ -140,7 +138,7 @@ trait KD_Tree[+T]:
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  def insert[TT >: T : Comparison](node: KD_Tree[TT], depth: Int): KD_Tree[TT]
+  def insert[TT >: T : Comparison](kdtree: KDTree[TT], depth: Int): KD_Tree[TT]
 
   /**
    * Insert a KD-Tree 
@@ -152,7 +150,7 @@ trait KD_Tree[+T]:
    * @return
    * returns a new KD-Tree with the given KD-Tree inserted if insertion criteria are met(eg: same dimension)
    */
-  def insert[TT >: T : Comparison](tree: KD_Tree[TT]): KD_Tree[TT]
+  def insert[TT >: T : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT]
 
   /**
    * Remove a given point from a KD-Tree
