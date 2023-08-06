@@ -1,5 +1,7 @@
 package bd.kdtree.classes
 
+import scala.annotation.targetName
+
 /**
  * Created by Bomen Derick.
  */
@@ -16,4 +18,6 @@ case class Point[+T](value: Seq[T])
 
 case object Point {
   def apply[T](): Point[T] = Point(Seq())
+  @targetName("sequence synctatic sugar")
+  def apply[T](point: T*): Point[T] = Point(point.toSeq)
 }

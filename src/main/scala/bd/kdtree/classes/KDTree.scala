@@ -67,7 +67,7 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
      lazy val leftDepth = 1 + left.depth
      lazy val rightDepth = 1 + right.depth
       if leftDepth > rightDepth then leftDepth else rightDepth
-  
+
   /**
    * Determine if a KD-Tree contains a given point
    *
@@ -113,7 +113,7 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    */
   override def contains[TT >: T : Comparison](kd_tree: KD_Tree[TT]): Boolean = kd_tree match
     case Leaf(lData) => contains(lData)
-    case KDTree(tData, tLeft, tRight) => contains(tData) && contains(tLeft) && contains(tRight) 
+    case KDTree(tData, tLeft, tRight) => contains(tData) && contains(tLeft) && contains(tRight)
 
   /**
    * A protected utility method to insert a given point to a KD-Tree
@@ -199,6 +199,57 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
     case _ => this
 
   /**
+   * Determine the minimum of three nodes(points), including the node(point) calling the method
+   * @param node_1
+   * first node
+   * @param node_2
+   * second node
+   * @param axis
+   * axis of comparison
+   * @param comparison
+   * given instance used to compare between two points
+   * @tparam TT
+   * type of points each node has
+   * @return
+   * returns the minimum node among the three nodes(points)
+   */
+  @tailrec
+  final private def minimumOfThreeNodes[TT >: T](node_1: KDTree[TT], node_2: KDTree[TT], axis: Int)(using comparison: Comparison[TT]): KDTree[TT] =
+    if isEmpty then
+      if comparison.isLessThan(node_1.data.value(axis), node_2.data.value(axis)) then node_1 else node_2
+    else if node_1.isEmpty then
+      if comparison.isLessThan(node_2.data.value(axis), data.value(axis)) then node_2 else KDTree(data, left, right)
+    else if node_2.isEmpty then
+      if comparison.isLessThan(node_1.data.value(axis), data.value(axis)) then node_1 else KDTree(data, left, right)
+    else if this.isEmpty && node_1.isEmpty && node_2.isEmpty then
+      KDTree()
+    else if comparison.isLessThan(node_1.data.value(axis), data.value(axis)) then
+      node_1.minimumOfThreeNodes(node_2, KDTree(), axis)
+    else minimumOfThreeNodes(node_2, KDTree(), axis)
+
+  /**
+   * determine the minimum node(point) in a KD-Tree
+   * @param givenAxis
+   * given axis of comparison
+   * @param depth
+   * depth of the KD-Tree
+   * @tparam TT
+   * type of points in the KD-Tree
+   * @return
+   * returns the minimum node(point) in a KD-Tree
+   */
+  final private def findMinimumNode[TT >: T : Comparison](givenAxis: Int, depth: Int = 0): KDTree[TT] =
+    lazy val currentAxis = depth % dimension
+    if isEmpty then KDTree()
+    else if currentAxis == givenAxis then
+      left match
+        case leftB: KDTree[T] => leftB.findMinimumNode(givenAxis, depth + 1)
+        case empty => KDTree(data, empty, right)
+    else (left, right) match
+      case (leftB: KDTree[T], rightB: KDTree[T]) =>
+        minimumOfThreeNodes(leftB.findMinimumNode(givenAxis, depth + 1), rightB.findMinimumNode(givenAxis, depth + 1), givenAxis)
+
+  /**
    * Remove a given point from a KD-Tree
    *
    * @param point
@@ -210,7 +261,30 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns a new KD-Tree excluding the given point if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](point: Point[TT], depth: Int): KD_Tree[TT] = ???
+  override def delete[TT >: T](point: Point[TT], depth: Int = 0)(using comparison: Comparison[TT]): KD_Tree[TT] =
+    assume(point.value.size == dimension, s"required dimension is $dimension-D")
+    lazy val axis = depth % dimension
+    if contains(point) then
+      if point == data then
+        if !right.isEmpty then
+          right match
+            case branch: KDTree[TT] =>
+              lazy val newPoint = branch.findMinimumNode(axis).data
+              KDTree(newPoint, left, branch.delete(newPoint, depth + 1))
+            case leaf: Leaf[TT] => KDTree(leaf.data, left, empty)
+          end match
+        else if !left.isEmpty then
+          left match
+            case branch: KDTree[TT] =>
+              lazy val newPoint = branch.findMinimumNode(axis).data
+              KDTree(newPoint, branch.delete(newPoint, depth + 1), right)
+            case leaf: Leaf[TT] => KDTree(leaf.data, empty, right)
+          end match
+        else empty
+      else if comparison.isLessThan(point.value(axis), data.value(axis)) then
+        KDTree(data, left.delete(point, depth + 1), right)
+      else KDTree(data, left, right.delete(point, depth + 1))
+    else this
 
   /**
    * Remove a point from a KD-Tree given as a sequence of numbers
@@ -222,7 +296,9 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns a new KD-Tree excluding the given point if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](point: TT*): KD_Tree[TT] = ???
+  override def delete[TT >: T : Comparison](point: TT*): KD_Tree[TT] =
+    val pointToDelete: Point[TT] = Point(point.toSeq)
+    delete(pointToDelete)
 
   /**
    * remove a given KD-Tree
@@ -234,7 +310,12 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
    * @return
    * returns a new KD-Tree excluding the given KD-Tree if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](node: KD_Tree[TT]): KD_Tree[TT] = ???
+  override def delete[TT >: T : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT] =
+    if contains(kd_tree) then
+      delete(kd_tree.data)
+      delete(kd_tree.left)
+      delete(kd_tree.right)
+    else this
 
   /**
    * Search a given point from a KD-Tree
@@ -265,12 +346,22 @@ case class KDTree[+T](tData: Point[T], tLeft: KD_Tree[T], tRight: KD_Tree[T]) ex
   /**
    * display all points of a KD-Tree
    */
-  override def print(): Unit = ???
+  override def display: String =
+    s"KDTree(${data.value.mkString("(", ",", ")")}, ${left.display}, ${right.display})"
 
   /**
    * Display all points of a KD-Tree in a Tree like structure
    */
   override def prettyPrint(): Unit = ???
+
+  def printIn2d(space: Int): Unit =
+    if isEmpty then ()
+    else
+      right.asInstanceOf[KDTree[T]].printIn2d(space + 10)
+      10 until(space)foreach(i => printf(" "))
+      scala.Predef.print(data.value)
+      left.asInstanceOf[KDTree[T]].printIn2d(space)
+
 end KDTree
 
 /**

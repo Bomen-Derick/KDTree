@@ -220,7 +220,7 @@ case object empty extends KD_Tree[Nothing]:
   /**
    * display all points of a KD-Tree
    */
-  override def print(): Unit = println(empty)
+  override def display: String = empty.toString
 
   /**
    * Display all points of a KD-Tree in a Tree like structure

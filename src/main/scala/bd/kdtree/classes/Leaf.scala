@@ -10,7 +10,7 @@ import bd.kdtree.traits.given
 
 /**
  * Leaf representation of a KD-Tree (a KD-Tree with empty left and right branches)
- * 
+ *
  * @param lData
  * the point hold at the leaf level
  * @tparam T
@@ -198,7 +198,10 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * returns a new KD-Tree excluding the given point if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](point: Point[TT], depth: Int): KD_Tree[TT] = ???
+  override def delete[TT >: T : Comparison](point: Point[TT], depth: Int = 0): KD_Tree[TT] =
+    assume(point.value.size == dimension, s"Required dimension is $dimension-D")
+    if point == data then empty
+    else Leaf(data)
 
   /**
    * Remove a point from a KD-Tree given as a sequence of numbers
@@ -210,7 +213,9 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * returns a new KD-Tree excluding the given point if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](point: TT*): KD_Tree[TT] = ???
+  override def delete[TT >: T : Comparison](point: TT*): KD_Tree[TT] =
+    val pointToDelete: Point[TT] = Point(point.toSeq)
+    delete(pointToDelete)
 
   /**
    * remove a given KD-Tree
@@ -222,7 +227,19 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * returns a new KD-Tree excluding the given KD-Tree if deletion criteria are met(eg: same dimension)
    */
-  override def delete[TT >: T : Comparison](node: KD_Tree[TT]): KD_Tree[TT] = ???
+  override def delete[TT >: T : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT] =
+//    if contains(kd_tree) then
+//      delete(kd_tree.data)
+//      delete(kd_tree.left)
+//      delete(kd_tree.right)
+//    else this
+    assume(kd_tree.data.value.size == dimension, s"Required dimension is $dimension-D")
+    kd_tree match
+      case Leaf(lData) => delete(lData)
+      case KDTree(tData, tLeft, tRight) =>
+        if tLeft.isEmpty && tRight.isEmpty then delete(tData)
+        else Leaf(data)
+      case _ => Leaf(data)
 
   /**
    * Search a given point from a KD-Tree
@@ -253,7 +270,7 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
   /**
    * display all points of a KD-Tree
    */
-  override def print(): Unit = ???
+  override def display: String = data.value.mkString("(", ",", ")")
 
   /**
    * Display all points of a KD-Tree in a Tree like structure

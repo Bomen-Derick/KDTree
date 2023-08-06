@@ -219,7 +219,7 @@ trait KD_Tree[+T]:
   /**
    * display all points of a KD-Tree
    */
-  def print(): Unit
+  def display: String
   
   /**
    * Display all points of a KD-Tree in a Tree like structure
