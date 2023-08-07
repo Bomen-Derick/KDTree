@@ -24,4 +24,5 @@ object Main extends App {
   println(KDTree(Seq(1,3)).display)
   println(kd_tree1.contains(kd_tree3.delete(1,7)))
   println(kd_tree1.delete(kd_tree3.delete(1,7)).display)
+  println(kd_tree1.search(5,2).display)
 }

@@ -247,7 +247,9 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * if the point is found, return a new KD-Tree with the given point as the root else return an empty KD-Tree
    */
-  override def search[TT >: T : Comparison](point: TT*): KD_Tree[TT] = ???
+  override def search[TT >: T : Comparison](point: TT*): KD_Tree[TT] =
+    val pointToSearch: Point[TT] = Point(point.toSeq)
+    search(pointToSearch)
 
   /**
    * Search a given point from a KD-Tree
@@ -261,7 +263,12 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * if the point is found, return a new KD-Tree with the given point as the root else return an empty KD-Tree
    */
-  override def search[TT >: T : Comparison](point: Point[TT], depth: Int): KD_Tree[TT] = ???
+  override def search[TT >: T](point: Point[TT], depth: Int = 0)(using comparison: Comparison[TT]): KD_Tree[TT] =
+    assume(point.value.size == dimension, s"Required dimension is $dimension-D")
+    val axis: Int = depth % dimension
+    if point == data then KDTree(data, empty, empty)
+    else if comparison.isLessThan(point.value(axis), data.value(axis)) then left.search(point, depth + 1)
+    else right.search(point, depth + 1)
 
   /**
    * display all points of a KD-Tree
