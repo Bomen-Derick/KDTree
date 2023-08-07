@@ -70,7 +70,9 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * returns true if point is found false otherwise
    */
-  override def contains[TT >: T : Comparison](point: Point[TT], depth: Int = 0): Boolean = point == data
+  override def contains[TT >: T : Comparison](point: Point[TT], depth: Int = 0): Boolean =
+    assume(point.value.size == dimension, s"Required dimension is $dimension")
+    point == data
 
   /**
    * Determine if a KD-Tree contains a given point
@@ -96,10 +98,11 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * @return
    * returns true if node is found, false otherwise
    */
-  override def contains[TT >: T : Comparison](node: KD_Tree[TT]): Boolean = node match
-    case Leaf(lData) => contains(lData)
-    case KDTree(tData, _, _) => contains(tData)
-    case _ => false
+  override def contains[TT >: T : Comparison](kd_tree: KD_Tree[TT]): Boolean =
+    kd_tree match
+      case Leaf(lData) => contains(lData)
+      case KDTree(tData, _, _) => contains(tData)
+      case _ => false
 
   /**
    * A utility method to insert a given point to a KD-Tree
@@ -201,7 +204,7 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
   override def delete[TT >: T : Comparison](point: Point[TT], depth: Int = 0): KD_Tree[TT] =
     assume(point.value.size == dimension, s"Required dimension is $dimension-D")
     if point == data then empty
-    else Leaf(data)
+    else this
 
   /**
    * Remove a point from a KD-Tree given as a sequence of numbers
@@ -228,18 +231,11 @@ case class Leaf[+T](lData: Point[T]) extends KD_Tree[T]:
    * returns a new KD-Tree excluding the given KD-Tree if deletion criteria are met(eg: same dimension)
    */
   override def delete[TT >: T : Comparison](kd_tree: KD_Tree[TT]): KD_Tree[TT] =
-//    if contains(kd_tree) then
-//      delete(kd_tree.data)
-//      delete(kd_tree.left)
-//      delete(kd_tree.right)
-//    else this
-    assume(kd_tree.data.value.size == dimension, s"Required dimension is $dimension-D")
-    kd_tree match
-      case Leaf(lData) => delete(lData)
-      case KDTree(tData, tLeft, tRight) =>
-        if tLeft.isEmpty && tRight.isEmpty then delete(tData)
-        else Leaf(data)
-      case _ => Leaf(data)
+    if contains(kd_tree) then
+      delete(kd_tree.data)
+      .delete(kd_tree.left)
+      .delete(kd_tree.right)
+    else this
 
   /**
    * Search a given point from a KD-Tree
